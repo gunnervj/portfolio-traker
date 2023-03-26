@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: portfolio-tracker
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: user_db
+      auto-index-creation: true
+
+security:
+  jwt:
+    secretKey: testKey
+    issuer: TicketTraker
