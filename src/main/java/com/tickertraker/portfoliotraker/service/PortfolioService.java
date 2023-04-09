@@ -1,24 +1,24 @@
 package com.tickertraker.portfoliotraker.service;
 
-import com.tickertraker.portfoliotraker.controller.dto.CreatePortfolioRequest;
-import com.tickertraker.portfoliotraker.controller.dto.CreatePortfolioResponse;
-import com.tickertraker.portfoliotraker.controller.dto.RenamePortfolioRequest;
-import com.tickertraker.portfoliotraker.controller.dto.RenamePortfolioResponse;
+import com.tickertraker.portfoliotraker.controller.dto.*;
 import com.tickertraker.portfoliotraker.core.constants.ErrorMessages;
 import com.tickertraker.portfoliotraker.exception.PortfolioTrakerException;
 import com.tickertraker.portfoliotraker.exception.UnknownException;
+import com.tickertraker.portfoliotraker.helper.PortfolioGainLossHelper;
 import com.tickertraker.portfoliotraker.mapper.PortfolioMapper;
 import com.tickertraker.portfoliotraker.repository.PortfolioRepository;
+import com.tickertraker.portfoliotraker.repository.entity.Holding;
 import com.tickertraker.portfoliotraker.repository.entity.Portfolio;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.HashSet;
 
 @Service
 @Slf4j
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 public class PortfolioService {
     private final PortfolioRepository portfolioRepository;
     private final PortfolioMapper portfolioMapper;
+    private final PortfolioGainLossHelper portfolioGainLossHelper;
 
     public Mono<CreatePortfolioResponse> createPortfolio(Mono<CreatePortfolioRequest> request, Principal principal) {
         return request.flatMap(createPortfolioRequest -> this.createPortfolio(createPortfolioRequest, principal));
@@ -36,6 +37,19 @@ public class PortfolioService {
                                                          Principal principal) {
         return request.flatMap(renamePortfolioRequest -> this.renamePortfolio(renamePortfolioRequest,
                 existingPortfolioName, principal));
+    }
+
+
+    public Flux<PortfolioMetaDataDto> getAllPortfolios(Principal principal) {
+        return portfolioRepository.findPortfolioByOwner(principal.getName())
+                .map(portfolioMapper::mapPortfolioToPortfolioMetaData);
+    }
+
+    public Mono<PortfolioDto> getPortfolio(String portfolioName,
+                                           Principal principal) {
+        return portfolioRepository.findPortfolioByPortfolioNameAndOwner(portfolioName, principal.getName())
+                .flatMap(portfolioGainLossHelper::calculateGainLoss)
+                .map(portfolioMapper::mapPortfolioToPortfolioDTO);
     }
 
     public Mono<Void> deletePortfolio(String portfolioName, Principal principal) {
@@ -87,7 +101,14 @@ public class PortfolioService {
 
     private Portfolio nourishPortfolio(Portfolio portfolio, String userName) {
         if (null != portfolio) {
-            portfolio.setHoldings(new ArrayList<>());
+            Holding holding = new Holding();
+            holding.setTicker("AAPL");
+            holding.setQuantity(1);
+            holding.setDescription("APPLE");
+            holding.setUnrealizedGainLoss(111D);
+            holding.setPrice(12D);
+            portfolio.setHoldings(new HashSet<>());
+            portfolio.getHoldings().add(holding);
             portfolio.setCreatedDateTime(LocalDateTime.now());
             portfolio.setOwner(userName);
             portfolio.setLastUpdatedDateTime(LocalDateTime.now());
