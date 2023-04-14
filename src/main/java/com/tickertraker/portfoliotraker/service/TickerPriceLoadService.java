@@ -21,6 +21,7 @@ public class TickerPriceLoadService {
 
     private final CurrentTickerPriceRepository currentTickerPriceRepository;
     private final Random random = new Random();
+
     @Scheduled(fixedRate = 60000, initialDelay=10000)
     public void loadPrices() {
         log.info("Refreshing price");
