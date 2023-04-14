@@ -101,14 +101,7 @@ public class PortfolioService {
 
     private Portfolio nourishPortfolio(Portfolio portfolio, String userName) {
         if (null != portfolio) {
-            Holding holding = new Holding();
-            holding.setTicker("AAPL");
-            holding.setQuantity(1);
-            holding.setDescription("APPLE");
-            holding.setUnrealizedGainLoss(111D);
-            holding.setPrice(12D);
             portfolio.setHoldings(new HashSet<>());
-            portfolio.getHoldings().add(holding);
             portfolio.setCreatedDateTime(LocalDateTime.now());
             portfolio.setOwner(userName);
             portfolio.setLastUpdatedDateTime(LocalDateTime.now());
